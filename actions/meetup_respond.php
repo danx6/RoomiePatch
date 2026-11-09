@@ -1,6 +1,6 @@
 <?php
 // The recipient accepts or rejects a meetup request.
-// Accepting requires the Meetup Safety Notice to be acknowledged (every time, never saved).
+// Accepting requires the Meetup Liability & Safety Notice to be acknowledged (every time, never saved).
 
 require_once '../includes/auth.php';
 require_login('student');
@@ -34,7 +34,7 @@ if ($decision !== 'accept' && $decision !== 'reject') {
     redirect('student/meetups.php');
 }
 if ($decision === 'accept' && post_text('safety_ack') !== '1') {
-    set_flash('Please read and agree to the Meetup Safety Notice before accepting.', 'error');
+    set_flash('Please read and agree to the Meetup Liability & Safety Notice before accepting.', 'error');
     redirect('student/meetups.php');
 }
 

@@ -27,20 +27,13 @@ if (!$post) {
 $is_author = (int) $post['user_id'] === $user_id;
 $is_resolved = $post['status'] === 'Resolved';
 
-// Only replies newer than the last one the page already shows (max 50 at a time)
-$stmt = $conn->prepare('
-    SELECT r.reply_id, r.user_id, r.content, r.is_resolved, r.created_at, u.username
-    FROM replies r
-    JOIN users u ON u.user_id = r.user_id
-    WHERE r.post_id = ? AND r.reply_id > ?
-    ORDER BY r.reply_id ASC
-    LIMIT 50');
-$stmt->bind_param('ii', $post_id, $after);
-$stmt->execute();
+// Only replies newer than the last one the page already shows, with scores and my votes
+$new_replies = get_replies($conn, $post_id, $user_id, $after);
+$rep_info = get_reputation_info($conn, array_column($new_replies, 'user_id'));
 
 $new = [];
 $last_id = $after;
-foreach ($stmt->get_result() as $reply) {
+foreach ($new_replies as $reply) {
     $new[] = [
         'id'   => (int) $reply['reply_id'],
         'html' => render_partial(__DIR__ . '/../includes/reply_item.php', [
@@ -49,6 +42,7 @@ foreach ($stmt->get_result() as $reply) {
             'user_id'     => $user_id,
             'is_author'   => $is_author,
             'is_resolved' => $is_resolved,
+            'rep_info'    => $rep_info,
         ]),
     ];
     $last_id = (int) $reply['reply_id'];

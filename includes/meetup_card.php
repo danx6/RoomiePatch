@@ -26,7 +26,7 @@ $status_class = strtolower($m['status']);
 
     <?php if ($m['status'] === 'Pending' && $tab === 'received'): ?>
         <div class="report-actions">
-            <!-- Accept shows the Meetup Safety Notice first -->
+            <!-- Accept shows the Meetup Liability & Safety Notice first -->
             <form method="post" action="<?= BASE_URL ?>actions/meetup_respond.php" data-safety-notice>
                 <?= csrf_field() ?>
                 <input type="hidden" name="meetup_id" value="<?= (int) $m['meetup_id'] ?>">

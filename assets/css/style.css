@@ -1290,6 +1290,202 @@ textarea.input {
     margin-top: 1px;
 }
 
+/* ==========================================================
+   Reply voting and reputation
+   ========================================================== */
+.reply-layout {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 14px;
+}
+
+.reply-main {
+    min-width: 0;
+}
+
+.vote-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin: 0;
+}
+
+.vote-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.vote-btn.up:hover:not(:disabled) {
+    border-color: var(--success-solid);
+    color: var(--success);
+}
+
+.vote-btn.down:hover:not(:disabled) {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+/* The vote this student has given right now */
+.vote-btn.up.active {
+    background: var(--success-solid);
+    border-color: var(--success-solid);
+    color: #ffffff;
+}
+
+.vote-btn.down.active {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #ffffff;
+}
+
+.vote-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.vote-score {
+    min-width: 28px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.vote-score.positive {
+    color: var(--success);
+}
+
+.vote-score.negative {
+    color: var(--danger);
+}
+
+/* While a vote is being saved */
+.vote-box.is-loading {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.vote-error {
+    margin: 8px 0 0;
+    color: var(--danger);
+    font-size: 13px;
+}
+
+.vote-error[hidden] {
+    display: none;
+}
+
+/* "Reputation: 23 · Recently Helpful" beside a username */
+.rep-info {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+.rep-score strong {
+    color: var(--text);
+    font-weight: 700;
+}
+
+.rep-short {
+    display: none;
+}
+
+.rep-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.rep-status.helpful {
+    background: var(--success-soft);
+    color: var(--success);
+}
+
+.rep-status.not-helpful {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+
+.rep-status.neutral {
+    background: var(--surface-alt);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* Reputation box on the profile */
+.profile-rep {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 18px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-alt);
+}
+
+.profile-rep-score {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.profile-rep-number {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--success);
+}
+
+.profile-rep-score.negative .profile-rep-number {
+    color: var(--danger);
+}
+
+.profile-rep-word {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.profile-rep-detail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    font-size: 13.5px;
+    color: var(--text);
+}
+
+.profile-rep-detail span {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.profile-rep-detail .muted {
+    font-size: 12.5px;
+}
+
 .info-list {
     margin: 0;
 }
@@ -2094,6 +2290,27 @@ a[data-lightbox] {
     line-height: 1.6;
 }
 
+.modal-section {
+    margin: 4px 0 6px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+}
+
+.modal-list {
+    margin: 0 0 14px;
+    padding-left: 20px;
+    color: var(--text-muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+}
+
+.modal-list li + li {
+    margin-top: 6px;
+}
+
 .modal-body p.modal-highlight {
     padding: 10px 12px;
     border-left: 3px solid var(--primary);
@@ -2785,6 +3002,25 @@ a[data-lightbox] {
 
     .reply {
         padding: 14px 16px;
+    }
+
+    /* Narrower vote column and shorter reputation text on phones */
+    .reply-layout {
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .vote-btn {
+        width: 30px;
+        height: 30px;
+    }
+
+    .rep-label {
+        display: none;
+    }
+
+    .rep-short {
+        display: inline;
     }
 
     .tab {

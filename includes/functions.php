@@ -374,17 +374,26 @@ function delete_post($conn, $post_id)
     $stmt->bind_param('ss', $link, $link_like);
     $stmt->execute();
 
-    // 3. Remove the post itself
+    // 3. Remember who wrote replies here: their votes disappear with the post
+    $stmt = $conn->prepare('SELECT DISTINCT user_id FROM replies WHERE post_id = ?');
+    $stmt->bind_param('i', $post_id);
+    $stmt->execute();
+    $reply_authors = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'user_id');
+
+    // 4. Remove the post itself (replies and their votes go with it: ON DELETE CASCADE)
     $stmt = $conn->prepare('DELETE FROM posts WHERE post_id = ?');
     $stmt->bind_param('i', $post_id);
     $stmt->execute();
+
+    // 5. Those authors' reputation no longer includes the deleted votes
+    recalculate_reputation($conn, $reply_authors);
 }
 
 // Delete one reply (used by admin moderation).
 // If it was the reply that resolved the post, the post goes back to Open.
 function delete_reply($conn, $reply_id)
 {
-    $stmt = $conn->prepare('SELECT post_id, is_resolved FROM replies WHERE reply_id = ?');
+    $stmt = $conn->prepare('SELECT post_id, user_id, is_resolved FROM replies WHERE reply_id = ?');
     $stmt->bind_param('i', $reply_id);
     $stmt->execute();
     $reply = $stmt->get_result()->fetch_assoc();
@@ -398,15 +407,232 @@ function delete_reply($conn, $reply_id)
     $stmt->bind_param('s', $link);
     $stmt->execute();
 
+    // Its votes are removed with it (ON DELETE CASCADE), so update the author's reputation
     $stmt = $conn->prepare('DELETE FROM replies WHERE reply_id = ?');
     $stmt->bind_param('i', $reply_id);
     $stmt->execute();
+    recalculate_reputation($conn, [$reply['user_id']]);
 
     if ($reply['is_resolved']) {
         $stmt = $conn->prepare('UPDATE posts SET status = "Open" WHERE post_id = ?');
         $stmt->bind_param('i', $reply['post_id']);
         $stmt->execute();
     }
+}
+
+// ---------- Reply votes and reputation ----------
+//
+// Reputation = upvotes minus downvotes received on all of a user's replies.
+// It is stored in users.reputation and changed only by cast_vote() (one vote at a time)
+// or recalculate_reputation() (after replies are deleted). Never from browser input.
+//
+// "Recently Helpful / Not Helpful" looks only at votes given or changed in the last
+// REP_RECENT_DAYS days on the user's replies:
+//   - fewer than REP_RECENT_MIN_VOTES recent votes  -> no label (not enough to judge)
+//   - 60% or more of them upvotes                    -> Recently Helpful
+//   - 40% or less of them upvotes                    -> Recently Not Helpful
+//   - anything in between                            -> no label (mixed feedback)
+const REP_RECENT_DAYS = 14;
+const REP_RECENT_MIN_VOTES = 3;
+const REP_HELPFUL_SHARE = 0.6;
+const REP_NOT_HELPFUL_SHARE = 0.4;
+
+// Upvote, downvote, change, or remove a vote. Clicking the same arrow again removes the vote.
+// Everything happens in one transaction: the reply row is locked, so two votes on the same
+// reply (even from two tabs at once) are processed one after the other, and the author's
+// reputation is changed with "reputation = reputation + change" so no update is lost.
+// Returns ['error' => '...'] or ['my_vote' => 'upvote'|'downvote'|null, 'score' => .., 'author_id' => ..].
+function cast_vote($conn, $voter_id, $reply_id, $clicked)
+{
+    if ($clicked !== 'upvote' && $clicked !== 'downvote') {
+        return ['error' => 'Unknown vote.'];
+    }
+    $value = ['upvote' => 1, 'downvote' => -1];
+
+    $conn->begin_transaction();
+    try {
+        // Lock the reply while we work on its votes
+        $stmt = $conn->prepare('SELECT reply_id, user_id FROM replies WHERE reply_id = ? FOR UPDATE');
+        $stmt->bind_param('i', $reply_id);
+        $stmt->execute();
+        $reply = $stmt->get_result()->fetch_assoc();
+
+        if (!$reply) {
+            $conn->rollback();
+            return ['error' => 'This reply no longer exists.'];
+        }
+        $author_id = (int) $reply['user_id'];
+        if ($author_id === (int) $voter_id) {
+            $conn->rollback();
+            return ['error' => 'You cannot vote on your own reply.'];
+        }
+
+        // My current vote on this reply, if any
+        $stmt = $conn->prepare('SELECT vote_id, vote_type FROM reply_votes WHERE reply_id = ? AND user_id = ? FOR UPDATE');
+        $stmt->bind_param('ii', $reply_id, $voter_id);
+        $stmt->execute();
+        $existing = $stmt->get_result()->fetch_assoc();
+
+        if ($existing && $existing['vote_type'] === $clicked) {
+            // Same arrow again: remove the vote (upvote -1, downvote +1)
+            $stmt = $conn->prepare('DELETE FROM reply_votes WHERE vote_id = ?');
+            $stmt->bind_param('i', $existing['vote_id']);
+            $stmt->execute();
+            $change = -$value[$clicked];
+            $my_vote = null;
+        } elseif ($existing) {
+            // Switch sides (upvote -> downvote = -2, downvote -> upvote = +2)
+            $stmt = $conn->prepare('UPDATE reply_votes SET vote_type = ? WHERE vote_id = ?');
+            $stmt->bind_param('si', $clicked, $existing['vote_id']);
+            $stmt->execute();
+            $change = $value[$clicked] - $value[$existing['vote_type']];
+            $my_vote = $clicked;
+        } else {
+            // New vote (+1 or -1). The UNIQUE key also blocks any duplicate row.
+            $stmt = $conn->prepare('INSERT INTO reply_votes (reply_id, user_id, vote_type) VALUES (?, ?, ?)');
+            $stmt->bind_param('iis', $reply_id, $voter_id, $clicked);
+            $stmt->execute();
+            $change = $value[$clicked];
+            $my_vote = $clicked;
+        }
+
+        $stmt = $conn->prepare('UPDATE users SET reputation = reputation + ? WHERE user_id = ?');
+        $stmt->bind_param('ii', $change, $author_id);
+        $stmt->execute();
+
+        $conn->commit();
+    } catch (mysqli_sql_exception $e) {
+        $conn->rollback();
+        return ['error' => 'Your vote could not be saved. Please try again.'];
+    }
+
+    return [
+        'my_vote'   => $my_vote,
+        'score'     => reply_score($conn, $reply_id),
+        'author_id' => $author_id,
+    ];
+}
+
+// Net score of one reply (upvotes minus downvotes)
+function reply_score($conn, $reply_id)
+{
+    $stmt = $conn->prepare("SELECT COALESCE(SUM(IF(vote_type = 'upvote', 1, -1)), 0) AS score FROM reply_votes WHERE reply_id = ?");
+    $stmt->bind_param('i', $reply_id);
+    $stmt->execute();
+    return (int) $stmt->get_result()->fetch_assoc()['score'];
+}
+
+// Recount stored reputation from the votes that exist, e.g. after replies were deleted
+function recalculate_reputation($conn, $user_ids)
+{
+    $user_ids = array_values(array_unique(array_map('intval', $user_ids)));
+    if (!$user_ids) {
+        return;
+    }
+    $placeholders = implode(',', array_fill(0, count($user_ids), '?'));
+    $stmt = $conn->prepare("
+        UPDATE users u
+        SET u.reputation = (
+            SELECT COALESCE(SUM(IF(v.vote_type = 'upvote', 1, -1)), 0)
+            FROM reply_votes v
+            JOIN replies r ON r.reply_id = v.reply_id
+            WHERE r.user_id = u.user_id
+        )
+        WHERE u.user_id IN ($placeholders)");
+    $stmt->bind_param(str_repeat('i', count($user_ids)), ...$user_ids);
+    $stmt->execute();
+}
+
+// Reputation and recent label for several users at once:
+// [user_id => ['reputation' => 23, 'status' => 'helpful'|'not_helpful'|null, 'recent_up' => .., 'recent_down' => ..]]
+function get_reputation_info($conn, $user_ids)
+{
+    $user_ids = array_values(array_unique(array_map('intval', $user_ids)));
+    $info = [];
+    if (!$user_ids) {
+        return $info;
+    }
+    $placeholders = implode(',', array_fill(0, count($user_ids), '?'));
+    $types = str_repeat('i', count($user_ids));
+
+    $stmt = $conn->prepare("SELECT user_id, reputation FROM users WHERE user_id IN ($placeholders)");
+    $stmt->bind_param($types, ...$user_ids);
+    $stmt->execute();
+    foreach ($stmt->get_result() as $row) {
+        $info[(int) $row['user_id']] = ['reputation' => (int) $row['reputation'], 'status' => null, 'recent_up' => 0, 'recent_down' => 0];
+    }
+
+    // Votes given or changed recently on each user's replies
+    $days = REP_RECENT_DAYS;
+    $stmt = $conn->prepare("
+        SELECT r.user_id,
+               SUM(v.vote_type = 'upvote')   AS ups,
+               SUM(v.vote_type = 'downvote') AS downs
+        FROM reply_votes v
+        JOIN replies r ON r.reply_id = v.reply_id
+        WHERE r.user_id IN ($placeholders) AND v.updated_at >= NOW() - INTERVAL $days DAY
+        GROUP BY r.user_id");
+    $stmt->bind_param($types, ...$user_ids);
+    $stmt->execute();
+    foreach ($stmt->get_result() as $row) {
+        $uid = (int) $row['user_id'];
+        if (!isset($info[$uid])) {
+            continue;
+        }
+        $ups = (int) $row['ups'];
+        $downs = (int) $row['downs'];
+        $info[$uid]['recent_up'] = $ups;
+        $info[$uid]['recent_down'] = $downs;
+        $total = $ups + $downs;
+        if ($total >= REP_RECENT_MIN_VOTES) {
+            $share = $ups / $total;
+            if ($share >= REP_HELPFUL_SHARE) {
+                $info[$uid]['status'] = 'helpful';
+            } elseif ($share <= REP_NOT_HELPFUL_SHARE) {
+                $info[$uid]['status'] = 'not_helpful';
+            }
+        }
+    }
+    return $info;
+}
+
+// Small "Reputation: 23 · Recently Helpful" label shown beside a username.
+// data-rep-user lets live.js replace every label of that user after a vote.
+function reputation_label($user_id, $info)
+{
+    $rep = $info[$user_id]['reputation'] ?? 0;
+    $status = $info[$user_id]['status'] ?? null;
+
+    $html = '<span class="rep-info" data-rep-user="' . (int) $user_id . '">'
+        . '<span class="rep-score" title="Reputation: upvotes minus downvotes on all replies">'
+        . '<span class="rep-label">Reputation: </span><strong>' . (int) $rep . '</strong><span class="rep-short"> rep</span></span>';
+    if ($status === 'helpful') {
+        $html .= '<span class="rep-status helpful" title="Most votes on this student\'s replies in the last ' . REP_RECENT_DAYS . ' days were upvotes">Recently Helpful</span>';
+    } elseif ($status === 'not_helpful') {
+        $html .= '<span class="rep-status not-helpful" title="Most votes on this student\'s replies in the last ' . REP_RECENT_DAYS . ' days were downvotes">Recently Not Helpful</span>';
+    }
+    return $html . '</span>';
+}
+
+// Replies of a post with their score and the viewer's own vote.
+// Resolved reply first, then oldest to newest. With $after, only replies newer than that id.
+function get_replies($conn, $post_id, $viewer_id, $after = 0)
+{
+    $order = $after > 0 ? 'r.reply_id ASC' : 'r.is_resolved DESC, r.created_at ASC';
+    $stmt = $conn->prepare("
+        SELECT r.reply_id, r.user_id, r.content, r.is_resolved, r.created_at, u.username,
+               (SELECT COALESCE(SUM(IF(v.vote_type = 'upvote', 1, -1)), 0)
+                FROM reply_votes v WHERE v.reply_id = r.reply_id) AS score,
+               (SELECT v.vote_type FROM reply_votes v
+                WHERE v.reply_id = r.reply_id AND v.user_id = ?) AS my_vote
+        FROM replies r
+        JOIN users u ON u.user_id = r.user_id
+        WHERE r.post_id = ? AND r.reply_id > ?
+        ORDER BY $order
+        LIMIT 200");
+    $stmt->bind_param('iii', $viewer_id, $post_id, $after);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
 // ---------- Staff removal ----------

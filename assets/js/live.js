@@ -475,6 +475,64 @@
         replyPoller = poller(checkReplies, 5000);
     }
 
+    // =====================================================================
+    // 5. Voting on replies (no page reload, no confirmation popup)
+    // =====================================================================
+    // Listens on the whole page, so replies that arrive through live updates work too.
+    // The server decides everything (one vote per reply, no voting on your own reply,
+    // the reputation change); this code only shows the result it sends back.
+    document.addEventListener('submit', function (event) {
+        var form = event.target;
+        if (!form.matches('form[data-vote-form]')) {
+            return;
+        }
+        event.preventDefault();
+
+        var button = event.submitter;
+        if (!button || form.classList.contains('is-loading')) {
+            return; // a vote for this reply is already being saved
+        }
+
+        var reply = form.closest('[data-reply-id]');
+        var errorBox = reply.querySelector('[data-vote-error]');
+        var data = new FormData(form);
+        data.append('vote', button.value);
+
+        form.classList.add('is-loading');
+        errorBox.hidden = true;
+
+        postForm('api/vote.php', data).then(function (result) {
+            if (!result.ok) {
+                errorBox.textContent = result.error || 'Your vote could not be saved.';
+                errorBox.hidden = false;
+                return;
+            }
+
+            // Arrows: highlight the active vote (or none after removing it)
+            form.querySelectorAll('.vote-btn').forEach(function (btn) {
+                var active = btn.value === result.my_vote;
+                btn.classList.toggle('active', active);
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+
+            // This reply's score
+            var score = form.querySelector('[data-vote-score]');
+            score.textContent = result.score;
+            score.classList.toggle('positive', result.score > 0);
+            score.classList.toggle('negative', result.score < 0);
+
+            // Every reputation label of the reply's author on this page
+            document.querySelectorAll('[data-rep-user="' + result.author_id + '"]').forEach(function (label) {
+                label.replaceWith(htmlToElements(result.rep_html));
+            });
+        }).catch(function () {
+            errorBox.textContent = 'Could not reach the server. Check your connection and try again.';
+            errorBox.hidden = false;
+        }).then(function () {
+            form.classList.remove('is-loading');
+        });
+    });
+
     // Export a little so other sections below can use the helpers
     window.RoomiePatchLive = {
         getJSON: getJSON,

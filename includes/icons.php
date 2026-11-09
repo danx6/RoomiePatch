@@ -28,6 +28,8 @@ function icon($name, $size = 20)
         'trash'    => '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
         'bell'     => '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
         'x-circle' => '<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
+        'arrow-up'   => '<path d="M12 19V5M5 12l7-7 7 7"/>',
+        'arrow-down' => '<path d="M12 5v14M19 12l-7 7-7-7"/>',
         'tag'      => '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="8" cy="8" r="1.5"/>',
     ];
 

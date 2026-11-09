@@ -2,7 +2,7 @@
 // Send a meetup request to another student, for face-to-face troubleshooting help.
 //   meetup_request.php?user=ID
 // The student types the date/time and location themselves (no calendar or booking system).
-// Before sending, the Meetup Safety Notice popup must be acknowledged.
+// Before sending, the Meetup Liability & Safety Notice popup must be acknowledged.
 
 require_once '../includes/auth.php';
 require_login('student');
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // The safety notice must be acknowledged for every request (never saved)
     if (post_text('safety_ack') !== '1') {
-        $errors['safety'] = 'Please read and agree to the Meetup Safety Notice before sending.';
+        $errors['safety'] = 'Please read and agree to the Meetup Liability & Safety Notice before sending.';
     }
 
     $datetime = post_text('proposed_datetime');
@@ -141,7 +141,7 @@ include '../includes/header.php';
                 <?= field_error($errors, 'location') ?>
             </div>
         </div>
-        <p class="field-hint meetup-hint">Choose a public place on campus. Never share your home address.</p>
+        <p class="field-hint meetup-hint">Meetups must be held in a university-designated area, such as the library, a computer lab or the student centre. Never share your home address.</p>
 
         <div class="form-group<?= isset($errors['message']) ? ' has-error' : '' ?>">
             <label for="message">Message <span class="optional">optional</span></label>

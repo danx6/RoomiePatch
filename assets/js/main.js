@@ -102,7 +102,7 @@ document.addEventListener('keydown', function (event) {
     }
 });
 
-// ---------- Meetup Safety Notice ----------
+// ---------- Meetup Liability & Safety Notice ----------
 // Forms with data-safety-notice (send a meetup request, accept a request) show the
 // safety popup first. The form is only sent after the checkbox is ticked and
 // "I Agree & Continue" is clicked. The acknowledgement is never saved.

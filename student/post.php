@@ -93,16 +93,12 @@ $stmt->execute();
 $images = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 // The resolved reply goes first, then the rest oldest to newest, like a conversation.
-$stmt = $conn->prepare('
-    SELECT r.reply_id, r.user_id, r.content, r.is_resolved, r.created_at, u.username
-    FROM replies r
-    JOIN users u ON u.user_id = r.user_id
-    WHERE r.post_id = ?
-    ORDER BY r.is_resolved DESC, r.created_at ASC');
-$stmt->bind_param('i', $post_id);
-$stmt->execute();
-$replies = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+// Each reply comes with its vote score and the viewer's own vote.
+$replies = get_replies($conn, $post_id, $user_id);
 $reply_count = count($replies);
+
+// Reputation and "recently helpful" labels for the post author and everyone who replied
+$rep_info = get_reputation_info($conn, array_merge([(int) $post['user_id']], array_column($replies, 'user_id')));
 
 $page_title = $post['title'];
 $active = 'browse';
@@ -132,6 +128,7 @@ $profile_url = BASE_URL . 'student/profile.php?id=';
                 <a class="author-chip" href="<?= $profile_url . (int) $post['user_id'] ?>">
                     <?= avatar($post['username'], 'sm') ?><?= e($post['username']) ?>
                 </a>
+                <?= reputation_label((int) $post['user_id'], $rep_info) ?>
                 <span class="dot" aria-hidden="true"></span>
                 <span>asked <time datetime="<?= e($post['created_at']) ?>"><?= e(time_ago($post['created_at'])) ?></time></span>
                 <span class="dot" aria-hidden="true"></span>

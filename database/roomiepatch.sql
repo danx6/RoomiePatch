@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS meetup_requests;
 DROP TABLE IF EXISTS messages;
 DROP TABLE IF EXISTS reports;
+DROP TABLE IF EXISTS reply_votes;
 DROP TABLE IF EXISTS replies;
 DROP TABLE IF EXISTS post_images;
 DROP TABLE IF EXISTS posts;
@@ -29,6 +30,9 @@ CREATE TABLE users (
     login_id  VARCHAR(20)  NOT NULL UNIQUE,      -- matric ID or staff ID
     password  VARCHAR(255) NOT NULL,             -- password_hash() output, never plain text
     role      ENUM('student', 'admin') NOT NULL DEFAULT 'student',
+    -- Reputation = upvotes minus downvotes received on all of this user's replies.
+    -- Can go negative; no upper limit. Updated by cast_vote() in includes/functions.php.
+    reputation INT NOT NULL DEFAULT 0,
     bio       TEXT NULL
 ) ENGINE=InnoDB;
 
@@ -75,6 +79,23 @@ CREATE TABLE replies (
     is_resolved TINYINT(1) NOT NULL DEFAULT 0,    -- 1 = the reply the author marked as resolved
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Upvotes and downvotes on replies. One active vote per student per reply.
+-- Deleting a reply or a user removes their votes (CASCADE); the PHP code then
+-- recalculates the affected authors' reputation so totals stay consistent.
+CREATE TABLE reply_votes (
+    vote_id    INT AUTO_INCREMENT PRIMARY KEY,
+    reply_id   INT NOT NULL,
+    user_id    INT NOT NULL,                      -- the student who voted
+    vote_type  ENUM('upvote', 'downvote') NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_vote_user_reply (user_id, reply_id),   -- no duplicate votes
+    KEY idx_votes_reply (reply_id),                     -- score of one reply
+    KEY idx_votes_updated (updated_at),                 -- "recently helpful" window
+    FOREIGN KEY (reply_id) REFERENCES replies(reply_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -283,6 +304,109 @@ INSERT INTO replies (reply_id, post_id, user_id, content, is_resolved, created_a
     (36, 16, 11, 'Windows File Recovery from the Microsoft Store can help if the other methods do not work.', 0, NOW() - INTERVAL 20 HOUR),
 
     (37, 17, 3, 'Unlock the iPhone and tap Trust when it asks whether to trust this computer. It will not show up until you do.', 0, NOW() - INTERVAL 18 HOUR);
+
+-- ---------- Reply votes ----------
+-- (reply, voter, type, when). Nobody votes on their own reply.
+-- Votes older than 14 days count for lifetime reputation only;
+-- newer ones also decide the "Recently Helpful / Not Helpful" label.
+INSERT INTO reply_votes (reply_id, user_id, vote_type, created_at, updated_at) VALUES
+    -- Danial_Fahimy (1)
+    (2, 7, 'upvote', NOW() - INTERVAL 470 HOUR, NOW() - INTERVAL 470 HOUR),
+    (2, 8, 'upvote', NOW() - INTERVAL 460 HOUR, NOW() - INTERVAL 460 HOUR),
+    (2, 5, 'upvote', NOW() - INTERVAL 440 HOUR, NOW() - INTERVAL 440 HOUR),
+    (2, 3, 'upvote', NOW() - INTERVAL 420 HOUR, NOW() - INTERVAL 420 HOUR),
+    (2, 11, 'upvote', NOW() - INTERVAL 400 HOUR, NOW() - INTERVAL 400 HOUR),
+    (15, 10, 'upvote', NOW() - INTERVAL 285 HOUR, NOW() - INTERVAL 285 HOUR),
+    (15, 6, 'upvote', NOW() - INTERVAL 280 HOUR, NOW() - INTERVAL 280 HOUR),
+    (20, 12, 'upvote', NOW() - INTERVAL 185 HOUR, NOW() - INTERVAL 185 HOUR),
+    (20, 9, 'upvote', NOW() - INTERVAL 180 HOUR, NOW() - INTERVAL 180 HOUR),
+    (25, 4, 'upvote', NOW() - INTERVAL 146 HOUR, NOW() - INTERVAL 146 HOUR),
+    (25, 11, 'upvote', NOW() - INTERVAL 140 HOUR, NOW() - INTERVAL 140 HOUR),
+    (32, 5, 'upvote', NOW() - INTERVAL 44 HOUR, NOW() - INTERVAL 44 HOUR),
+    (32, 8, 'upvote', NOW() - INTERVAL 40 HOUR, NOW() - INTERVAL 40 HOUR),
+    (32, 2, 'upvote', NOW() - INTERVAL 30 HOUR, NOW() - INTERVAL 30 HOUR),
+    -- Aron_Paul (2)
+    (4, 3, 'upvote', NOW() - INTERVAL 425 HOUR, NOW() - INTERVAL 425 HOUR),
+    (4, 9, 'upvote', NOW() - INTERVAL 420 HOUR, NOW() - INTERVAL 420 HOUR),
+    (4, 1, 'upvote', NOW() - INTERVAL 410 HOUR, NOW() - INTERVAL 410 HOUR),
+    (11, 8, 'upvote', NOW() - INTERVAL 318 HOUR, NOW() - INTERVAL 318 HOUR),
+    (18, 9, 'upvote', NOW() - INTERVAL 225 HOUR, NOW() - INTERVAL 225 HOUR),
+    (18, 5, 'upvote', NOW() - INTERVAL 220 HOUR, NOW() - INTERVAL 220 HOUR),
+    (18, 1, 'upvote', NOW() - INTERVAL 210 HOUR, NOW() - INTERVAL 210 HOUR),
+    (18, 11, 'upvote', NOW() - INTERVAL 200 HOUR, NOW() - INTERVAL 200 HOUR),
+    -- Arul_Subramanian (4)
+    (6, 1, 'upvote', NOW() - INTERVAL 395 HOUR, NOW() - INTERVAL 395 HOUR),
+    (6, 6, 'upvote', NOW() - INTERVAL 390 HOUR, NOW() - INTERVAL 390 HOUR),
+    (6, 7, 'upvote', NOW() - INTERVAL 380 HOUR, NOW() - INTERVAL 380 HOUR),
+    (6, 12, 'upvote', NOW() - INTERVAL 370 HOUR, NOW() - INTERVAL 370 HOUR),
+    (6, 3, 'upvote', NOW() - INTERVAL 350 HOUR, NOW() - INTERVAL 350 HOUR),
+    (16, 6, 'upvote', NOW() - INTERVAL 245 HOUR, NOW() - INTERVAL 245 HOUR),
+    (16, 11, 'downvote', NOW() - INTERVAL 240 HOUR, NOW() - INTERVAL 240 HOUR),
+    (29, 3, 'upvote', NOW() - INTERVAL 88 HOUR, NOW() - INTERVAL 88 HOUR),
+    -- Siti_Farah (5)
+    (24, 1, 'upvote', NOW() - INTERVAL 148 HOUR, NOW() - INTERVAL 148 HOUR),
+    (24, 11, 'upvote', NOW() - INTERVAL 147 HOUR, NOW() - INTERVAL 147 HOUR),
+    (24, 9, 'downvote', NOW() - INTERVAL 146 HOUR, NOW() - INTERVAL 146 HOUR),
+    (27, 11, 'upvote', NOW() - INTERVAL 116 HOUR, NOW() - INTERVAL 116 HOUR),
+    (27, 9, 'upvote', NOW() - INTERVAL 112 HOUR, NOW() - INTERVAL 112 HOUR),
+    (27, 3, 'upvote', NOW() - INTERVAL 108 HOUR, NOW() - INTERVAL 108 HOUR),
+    (27, 7, 'upvote', NOW() - INTERVAL 104 HOUR, NOW() - INTERVAL 104 HOUR),
+    (27, 12, 'upvote', NOW() - INTERVAL 100 HOUR, NOW() - INTERVAL 100 HOUR),
+    -- Jason_Lim (6): good older answers, but a harmful tip recently
+    (7, 1, 'upvote', NOW() - INTERVAL 390 HOUR, NOW() - INTERVAL 390 HOUR),
+    (7, 4, 'upvote', NOW() - INTERVAL 385 HOUR, NOW() - INTERVAL 385 HOUR),
+    (7, 9, 'upvote', NOW() - INTERVAL 380 HOUR, NOW() - INTERVAL 380 HOUR),
+    (7, 11, 'upvote', NOW() - INTERVAL 375 HOUR, NOW() - INTERVAL 375 HOUR),
+    (7, 2, 'upvote', NOW() - INTERVAL 370 HOUR, NOW() - INTERVAL 370 HOUR),
+    (7, 3, 'upvote', NOW() - INTERVAL 365 HOUR, NOW() - INTERVAL 365 HOUR),
+    (7, 8, 'upvote', NOW() - INTERVAL 360 HOUR, NOW() - INTERVAL 360 HOUR),
+    (14, 10, 'upvote', NOW() - INTERVAL 294 HOUR, NOW() - INTERVAL 294 HOUR),
+    (14, 1, 'upvote', NOW() - INTERVAL 290 HOUR, NOW() - INTERVAL 290 HOUR),
+    (19, 12, 'upvote', NOW() - INTERVAL 194 HOUR, NOW() - INTERVAL 194 HOUR),
+    (26, 4, 'upvote', NOW() - INTERVAL 144 HOUR, NOW() - INTERVAL 144 HOUR),
+    (26, 1, 'upvote', NOW() - INTERVAL 142 HOUR, NOW() - INTERVAL 142 HOUR),
+    (21, 12, 'downvote', NOW() - INTERVAL 184 HOUR, NOW() - INTERVAL 184 HOUR),
+    (21, 1, 'downvote', NOW() - INTERVAL 183 HOUR, NOW() - INTERVAL 183 HOUR),
+    (21, 4, 'downvote', NOW() - INTERVAL 182 HOUR, NOW() - INTERVAL 182 HOUR),
+    (21, 11, 'downvote', NOW() - INTERVAL 181 HOUR, NOW() - INTERVAL 181 HOUR),
+    (21, 2, 'downvote', NOW() - INTERVAL 170 HOUR, NOW() - INTERVAL 170 HOUR),
+    (21, 9, 'downvote', NOW() - INTERVAL 160 HOUR, NOW() - INTERVAL 160 HOUR),
+    (21, 8, 'downvote', NOW() - INTERVAL 150 HOUR, NOW() - INTERVAL 150 HOUR),
+    (21, 5, 'downvote', NOW() - INTERVAL 149 HOUR, NOW() - INTERVAL 149 HOUR),
+    -- Kevin_Raj (8): mixed feedback lately
+    (1, 5, 'upvote', NOW() - INTERVAL 470 HOUR, NOW() - INTERVAL 470 HOUR),
+    (9, 5, 'downvote', NOW() - INTERVAL 354 HOUR, NOW() - INTERVAL 354 HOUR),
+    (9, 3, 'upvote', NOW() - INTERVAL 352 HOUR, NOW() - INTERVAL 352 HOUR),
+    (23, 1, 'upvote', NOW() - INTERVAL 158 HOUR, NOW() - INTERVAL 158 HOUR),
+    (23, 9, 'downvote', NOW() - INTERVAL 155 HOUR, NOW() - INTERVAL 155 HOUR),
+    (31, 2, 'upvote', NOW() - INTERVAL 69 HOUR, NOW() - INTERVAL 69 HOUR),
+    (33, 5, 'downvote', NOW() - INTERVAL 39 HOUR, NOW() - INTERVAL 39 HOUR),
+    (33, 10, 'downvote', NOW() - INTERVAL 38 HOUR, NOW() - INTERVAL 38 HOUR),
+    -- Hafiz_Rahman (9)
+    (5, 3, 'upvote', NOW() - INTERVAL 423 HOUR, NOW() - INTERVAL 423 HOUR),
+    (12, 8, 'upvote', NOW() - INTERVAL 305 HOUR, NOW() - INTERVAL 305 HOUR),
+    (28, 11, 'upvote', NOW() - INTERVAL 114 HOUR, NOW() - INTERVAL 114 HOUR),
+    (34, 7, 'upvote', NOW() - INTERVAL 26 HOUR, NOW() - INTERVAL 26 HOUR),
+    (34, 12, 'upvote', NOW() - INTERVAL 24 HOUR, NOW() - INTERVAL 24 HOUR),
+    -- Wei_Jie_Tan (11)
+    (10, 5, 'upvote', NOW() - INTERVAL 345 HOUR, NOW() - INTERVAL 345 HOUR),
+    (10, 8, 'upvote', NOW() - INTERVAL 340 HOUR, NOW() - INTERVAL 340 HOUR),
+    (17, 6, 'upvote', NOW() - INTERVAL 238 HOUR, NOW() - INTERVAL 238 HOUR),
+    (22, 1, 'upvote', NOW() - INTERVAL 164 HOUR, NOW() - INTERVAL 164 HOUR),
+    (22, 8, 'downvote', NOW() - INTERVAL 159 HOUR, NOW() - INTERVAL 159 HOUR),
+    (36, 7, 'upvote', NOW() - INTERVAL 19 HOUR, NOW() - INTERVAL 19 HOUR),
+    -- Mei_Liu (3) and Amirah_Zulkifli (12): too few recent votes for a label
+    (37, 9, 'upvote', NOW() - INTERVAL 17 HOUR, NOW() - INTERVAL 17 HOUR),
+    (35, 7, 'upvote', NOW() - INTERVAL 24 HOUR, NOW() - INTERVAL 24 HOUR);
+
+-- Stored reputation must equal the votes above (upvotes minus downvotes on each user's replies)
+UPDATE users u
+SET u.reputation = (
+    SELECT COALESCE(SUM(IF(v.vote_type = 'upvote', 1, -1)), 0)
+    FROM reply_votes v
+    JOIN replies r ON r.reply_id = v.reply_id
+    WHERE r.user_id = u.user_id
+);
 
 -- ---------- Reports ----------
 -- One report waiting for staff review (a harmful "tip" on post 9).

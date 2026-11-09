@@ -47,6 +47,16 @@ $stmt->bind_param('i', $profile_id);
 $stmt->execute();
 $help_count = (int) $stmt->get_result()->fetch_assoc()['total'];
 
+// Reputation: the stored total (users.reputation) plus the recent label,
+// and the lifetime upvotes / downvotes received on this user's replies
+$rep_info = get_reputation_info($conn, [$profile_id]);
+$rep = $rep_info[$profile_id];
+$stmt = $conn->prepare("SELECT COALESCE(SUM(v.vote_type = 'upvote'), 0) AS ups, COALESCE(SUM(v.vote_type = 'downvote'), 0) AS downs
+                        FROM reply_votes v JOIN replies r ON r.reply_id = v.reply_id WHERE r.user_id = ?");
+$stmt->bind_param('i', $profile_id);
+$stmt->execute();
+$vote_totals = $stmt->get_result()->fetch_assoc();
+
 // ---------- List for the current tab ----------
 if ($tab === 'help') {
     // Questions where this user's reply was the one that solved it
@@ -86,6 +96,25 @@ $base = 'profile.php?id=' . $profile_id;
                 <li><strong><?= $reply_count ?></strong> <?= $reply_count === 1 ? 'reply' : 'replies' ?></li>
                 <li class="stat-help"><?= icon('check', 16) ?><strong><?= $help_count ?></strong> resolved <?= $help_count === 1 ? 'help' : 'helps' ?></li>
             </ul>
+
+            <div class="profile-rep">
+                <div class="profile-rep-score<?= $rep['reputation'] < 0 ? ' negative' : '' ?>">
+                    <span class="profile-rep-number"><?= (int) $rep['reputation'] ?></span>
+                    <span class="profile-rep-word">reputation</span>
+                </div>
+                <div class="profile-rep-detail">
+                    <span><?= icon('arrow-up', 15) ?><?= (int) $vote_totals['ups'] ?> upvotes</span>
+                    <span><?= icon('arrow-down', 15) ?><?= (int) $vote_totals['downs'] ?> downvotes</span>
+                    <span class="muted">received on replies</span>
+                </div>
+                <?php if ($rep['status'] === 'helpful'): ?>
+                    <span class="rep-status helpful">Recently Helpful</span>
+                <?php elseif ($rep['status'] === 'not_helpful'): ?>
+                    <span class="rep-status not-helpful">Recently Not Helpful</span>
+                <?php else: ?>
+                    <span class="rep-status neutral" title="Fewer than <?= REP_RECENT_MIN_VOTES ?> recent votes, or mixed feedback">No recent trend</span>
+                <?php endif; ?>
+            </div>
 
             <?php if (!$is_me && !is_staff()): ?>
                 <div class="profile-actions">

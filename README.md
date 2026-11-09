@@ -50,6 +50,24 @@ department; it is a complementary space for students to learn from and support o
 The layout takes inspiration from community discussion platforms such as Stack Overflow and Reddit,
 but RoomiePatch focuses specifically on IT troubleshooting for university students.
 
+### Reputation
+
+Students can upvote or downvote any reply except their own (one active vote per reply;
+clicking the same arrow again removes it). A student's **reputation** is the total upvotes
+minus downvotes on all their replies. It is stored in the database, can go negative, and is
+shown beside their name and on their profile.
+
+A **Recently Helpful** (green) or **Recently Not Helpful** (red) label reflects only the votes
+from the last 14 days: at least 3 recent votes are needed, then 60% or more upvotes counts as
+helpful and 40% or less as not helpful. With too few or mixed votes, no label is shown.
+
+### Meetup Liability & Safety Notice
+
+Before sending or accepting a meetup request, students must tick an acknowledgement in a popup
+covering liability for personal belongings and devices, and that sessions take place only in
+university-designated areas, which the university monitors. The server rejects the request
+without this acknowledgement.
+
 ## Setup
 
 1. Make the project available in the web server's root folder as `roomiepatch`:
@@ -60,6 +78,9 @@ but RoomiePatch focuses specifically on IT troubleshooting for university studen
    This one file creates the `roomiepatch` database, all tables, and the demo data
    (accounts, posts, replies, meetups, messages, notifications and one pending report).
 4. Open `http://localhost/roomiepatch` and log in.
+
+**Already have an older RoomiePatch database?** Import `database/migration_reputation.sql` instead
+to add reply voting and reputation without losing your data.
 
 To reset everything back to the demo data, import `roomiepatch.sql` again.
 Demo times are relative to the moment you import, so the content always looks recent.
