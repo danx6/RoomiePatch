@@ -5,6 +5,51 @@ A student-powered peer-to-peer IT troubleshooting platform connecting university
 Built with plain HTML, CSS, JavaScript, PHP and MySQL (developed on Laragon; XAMPP works the same way).
 No frameworks or UI libraries.
 
+## About the project
+
+RoomiePatch is a peer-to-peer IT troubleshooting and support platform designed specifically for university students.
+
+### The problem
+
+IT support often relies mainly on remote troubleshooting and remote management. Many advanced
+enterprise-grade remote management capabilities are designed for organisational environments and
+may depend on specialised hardware, compatible devices or supporting infrastructure that typical
+university students do not have access to.
+
+Students commonly use personal laptops and devices that may lack these advanced remote management
+capabilities. Some problems are also difficult to diagnose or resolve remotely, particularly
+hardware issues, device configuration problems, and situations where physical inspection or a
+helping hand makes the difference.
+
+### What RoomiePatch offers
+
+RoomiePatch provides a student-oriented community where students can:
+
+- Share IT troubleshooting problems with their own devices.
+- Receive advice and solutions from other students.
+- Discuss hardware, software, operating system and networking issues.
+- Arrange optional face-to-face assistance when it is appropriate.
+
+### Approach
+
+RoomiePatch combines online peer troubleshooting with optional physical assistance. Students first
+discuss a problem in an open thread; when a problem is hard to solve online, they can request an
+in-person meetup on campus, with a safety notice shown before every request.
+
+The focus is on:
+
+- **Accessibility**: it works with the personal devices students already own, with no special
+  hardware or management software needed.
+- **Community collaboration**: students help each other, and the reply that solved a problem is
+  marked as resolved so others can find the fix later.
+- **Practical IT support**: everyday problems with laptops, phones, software and networks.
+
+RoomiePatch is not a replacement for professional remote support tools or the university IT
+department; it is a complementary space for students to learn from and support one another.
+
+The layout takes inspiration from community discussion platforms such as Stack Overflow and Reddit,
+but RoomiePatch focuses specifically on IT troubleshooting for university students.
+
 ## Setup
 
 1. Make the project available in the web server's root folder as `roomiepatch`:
