@@ -1,0 +1,8 @@
+# Uploaded files are images only. Never run scripts from this folder,
+# even if someone manages to upload one.
+<FilesMatch "\.(php|php\d|phtml|phar|pl|py|cgi|sh|html?)$">
+    Require all denied
+</FilesMatch>
+
+# Do not list the folder's files in the browser
+Options -Indexes

@@ -1,0 +1,13 @@
+# Images uploaded through the site are user data, not source code.
+# Keep the folders (the app saves into them) but not their contents.
+uploads/posts/*
+uploads/messages/*
+!uploads/posts/.gitkeep
+!uploads/messages/.gitkeep
+
+# Editor and OS files
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
