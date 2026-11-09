@@ -76,7 +76,8 @@ without this acknowledgement.
 2. Start **Apache** and **MySQL**.
 3. Open phpMyAdmin (or HeidiSQL), and import `database/roomiepatch.sql`.
    This one file creates the `roomiepatch` database, all tables, and the demo data
-   (accounts, posts, replies, meetups, messages, notifications and one pending report).
+   (27 students and 3 staff with a few weeks of simulated activity: 26 posts, 55 replies,
+   105 votes, 25 direct messages, 9 meetups and 5 reports, one still waiting for staff).
 4. Open `http://localhost/roomiepatch` and log in.
 
 **Already have an older RoomiePatch database?** Import `database/migration_reputation.sql` instead
@@ -104,6 +105,21 @@ Login IDs work in upper or lower case.
 | Student | `MC250111479`  | Priya_Nair          | `stud123`  |
 | Student | `MC240938230`  | Wei_Jie_Tan         | `stud123`  |
 | Student | `MC241022957`  | Amirah_Zulkifli     | `stud123`  |
+| Student | `MC240937205`  | Haziq_Iskandar      | `stud123`  |
+| Student | `MC241021846`  | Chloe_Tan           | `stud123`  |
+| Student | `MC250115390`  | Ravi_Kumar          | `stud123`  |
+| Student | `MC240931168`  | Nurul_Izzah         | `stud123`  |
+| Student | `MC241027734`  | Daniel_Wong         | `stud123`  |
+| Student | `MC250118023`  | Farah_Nadia         | `stud123`  |
+| Student | `MC240935591`  | Jun_Hao_Lim         | `stud123`  |
+| Student | `MC241024417`  | Kavitha_Rao         | `stud123`  |
+| Student | `MC250112689`  | Ahmad_Zaki          | `stud123`  |
+| Student | `MC240939312`  | Sarah_Ong           | `stud123`  |
+| Student | `MC241020578`  | Muthu_Velu          | `stud123`  |
+| Student | `MC250116744`  | Aina_Sofea          | `stud123`  |
+| Student | `MC240932950`  | Brandon_Lee         | `stud123`  |
+| Student | `MC241028361`  | Irfan_Hakim         | `stud123`  |
+| Student | `MC250110925`  | Yasmin_Rahim        | `stud123`  |
 | Staff   | `SD234792`     | Admin_Farah         | `admin123` |
 | Staff   | `SD231058`     | Admin_Rutheshwarar  | `admin123` |
 | Staff   | `SD238417`     | Admin_Nadia         | `admin123` |

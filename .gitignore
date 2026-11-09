@@ -4,6 +4,8 @@ uploads/posts/*
 uploads/messages/*
 !uploads/posts/.gitkeep
 !uploads/messages/.gitkeep
+# Sample photo used by the demo data in database/roomiepatch.sql
+!uploads/posts/demo-hinge-photo.png
 
 # Editor and OS files
 .vscode/
