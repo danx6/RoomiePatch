@@ -76,8 +76,10 @@ without this acknowledgement.
 2. Start **Apache** and **MySQL**.
 3. Open phpMyAdmin (or HeidiSQL), and import `database/roomiepatch.sql`.
    This one file creates the `roomiepatch` database, all tables, and the demo data
-   (27 students and 3 staff with a few weeks of simulated activity: 26 posts, 55 replies,
-   105 votes, 25 direct messages, 9 meetups and 5 reports, one still waiting for staff).
+   (27 students and 3 staff with a few weeks of simulated activity: 31 posts, 6 of them with
+   screenshots, 71 replies, 126 votes, 25 direct messages, 9 meetups and 5 reports, one still
+   waiting for staff). The demo screenshots in `uploads/posts/demo-*.png` are original images
+   drawn for this project.
 4. Open `http://localhost/roomiepatch` and log in.
 
 **Already have an older RoomiePatch database?** Import `database/migration_reputation.sql` instead
