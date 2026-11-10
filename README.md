@@ -38,6 +38,27 @@ can learn from and support each other.
 - **Moderation**: staff review reports and can remove posts or replies that break the rules.
 - **Light and dark theme**, and it works on mobile.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/01-browse.png" alt="Browse posts"><br><sub>Browse open and resolved questions</sub></td>
+    <td width="50%"><img src="docs/screenshots/02-post-resolved.png" alt="Resolved post"><br><sub>A resolved post with the accepted reply</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/03-knowledge-repository.png" alt="IT Knowledge Repository"><br><sub>IT Knowledge Repository with search and categories</sub></td>
+    <td><img src="docs/screenshots/04-repository-entry-dark.png" alt="Repository entry in dark theme"><br><sub>A verified solution (dark theme)</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/05-profile-reputation.png" alt="Profile and reputation"><br><sub>Student profile and reputation</sub></td>
+    <td><img src="docs/screenshots/06-messages.png" alt="Direct messages"><br><sub>Direct messages</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/07-meetup-safety-notice.png" alt="Meetup safety notice"><br><sub>Safety notice before a campus meetup</sub></td>
+    <td><img src="docs/screenshots/08-technician-review-dark.png" alt="Technician review"><br><sub>A technician reviews a submission (dark theme)</sub></td>
+  </tr>
+</table>
+
 ## Folder structure
 
 ```
@@ -52,6 +73,7 @@ RoomiePatch/
 │   └── js/         main.js, live.js
 ├── config/         Database connection (db.php)
 ├── database/       roomiepatch.sql and migrations
+├── docs/           Screenshots for this README
 ├── includes/       Shared parts: login check, header, sidebar, icons, helpers
 ├── student/        Student pages: browse, posts, messages, meetups, repository
 ├── uploads/        Images uploaded by users
