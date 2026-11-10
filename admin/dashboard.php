@@ -34,6 +34,13 @@ if ($tab === 'pending') {
 
     <?php show_flash(); ?>
 
+    <?php $repo_waiting = (int) $conn->query("SELECT COUNT(*) FROM repository_entries WHERE status = 'Pending'")->fetch_row()[0]; ?>
+    <a class="repo-dash-link" href="<?= BASE_URL ?>admin/repository.php">
+        <?= icon('book', 20) ?>
+        <span><strong>Knowledge Repository</strong> <?= $repo_waiting ?> <?= $repo_waiting === 1 ? 'submission is' : 'submissions are' ?> waiting for technician evaluation</span>
+        <span class="repo-dash-go">Open</span>
+    </a>
+
     <div class="tabs-row">
         <nav class="tabs" aria-label="Report status">
             <a class="tab<?= $tab === 'pending' ? ' active' : '' ?>" href="dashboard.php" <?= $tab === 'pending' ? 'aria-current="page"' : '' ?>>

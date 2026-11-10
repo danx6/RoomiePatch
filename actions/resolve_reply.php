@@ -52,8 +52,10 @@ $conn->begin_transaction();
 
 // Only the status changes. created_at stays the same, so the post keeps its place in the newest-first list.
 // "AND status = Open" means a double click cannot resolve the post twice.
-$stmt = $conn->prepare('UPDATE posts SET status = "Resolved" WHERE post_id = ? AND status = "Open"');
-$stmt->bind_param('i', $row['post_id']);
+// Also store exactly which reply was accepted and when: the repository shows this exact
+// reply later, and resolved_at decides how long the post stays in the Resolved tab.
+$stmt = $conn->prepare('UPDATE posts SET status = "Resolved", accepted_reply_id = ?, resolved_at = NOW() WHERE post_id = ? AND status = "Open"');
+$stmt->bind_param('ii', $reply_id, $row['post_id']);
 $stmt->execute();
 
 if ($stmt->affected_rows !== 1) {
@@ -68,5 +70,5 @@ $stmt->execute();
 
 $conn->commit();
 
-set_flash('Marked as resolved. Thanks for letting everyone know what fixed it.');
+set_flash('Marked as resolved. Thanks for letting everyone know what fixed it. The discussion is now closed to new replies.');
 redirect($post_page . '#reply-' . $reply_id);

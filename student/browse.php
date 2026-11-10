@@ -59,22 +59,28 @@ if ($tag !== '') {
     $params[] = '%,' . like_escape($tag) . ',%';
 }
 
-// ---------- 3. Count Open and Resolved posts for the tab labels ----------
-$count_sql = 'SELECT p.status, COUNT(*) AS total FROM posts p'
-    . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
-    . ' GROUP BY p.status';
+// The Resolved tab only lists posts resolved in the last RESOLVED_VISIBLE_DAYS days.
+// Older resolved posts are not deleted; they are just no longer listed here.
+$recent_resolved_sql = "p.status = 'Resolved' AND p.resolved_at >= NOW() - INTERVAL " . RESOLVED_VISIBLE_DAYS . ' DAY';
+
+// ---------- 3. Count Open and (recently) Resolved posts for the tab labels ----------
+$count_sql = "SELECT COALESCE(SUM(p.status = 'Open'), 0) AS open_total,
+                     COALESCE(SUM($recent_resolved_sql), 0) AS resolved_total
+              FROM posts p"
+    . ($where ? ' WHERE ' . implode(' AND ', $where) : '');
 $stmt = $conn->prepare($count_sql);
 if ($types !== '') {
     $stmt->bind_param($types, ...$params);
 }
 $stmt->execute();
-$counts = ['Open' => 0, 'Resolved' => 0];
-foreach ($stmt->get_result() as $row) {
-    $counts[$row['status']] = (int) $row['total'];
-}
+$row = $stmt->get_result()->fetch_assoc();
+$counts = ['Open' => (int) $row['open_total'], 'Resolved' => (int) $row['resolved_total']];
 
 // ---------- 4. Load the posts for the current tab, newest first ----------
 $list_where = array_merge($where, ['p.status = ?']);
+if ($status === 'Resolved') {
+    $list_where[] = 'p.resolved_at >= NOW() - INTERVAL ' . RESOLVED_VISIBLE_DAYS . ' DAY';
+}
 $stmt = $conn->prepare(POST_LIST_SQL . ' WHERE ' . implode(' AND ', $list_where) . ' ORDER BY p.created_at DESC');
 $stmt->bind_param($types . 's', ...array_merge($params, [$status]));
 $stmt->execute();
@@ -131,7 +137,7 @@ $has_filters = $q !== '' || $category > 0 || $device !== '' || $tag !== '';
                 Resolved <span class="tab-count"><?= $counts['Resolved'] ?></span>
             </a>
         </nav>
-        <span class="sort-label">Newest first</span>
+        <span class="sort-label"><?= $status === 'Resolved' ? 'Resolved in the last ' . RESOLVED_VISIBLE_DAYS . ' days' : 'Newest first' ?></span>
     </div>
 
     <form class="filter-bar" action="browse.php" method="get">
@@ -199,8 +205,9 @@ $has_filters = $q !== '' || $category > 0 || $device !== '' || $tag !== '';
                     <strong>No open questions</strong>
                     Every question has been resolved. Nice work, everyone.
                 <?php else: ?>
-                    <strong>No resolved questions yet</strong>
-                    Questions appear here once the author marks a reply as resolved.
+                    <strong>No recently resolved questions</strong>
+                    Questions appear here for <?= RESOLVED_VISIBLE_DAYS ?> days after the author marks a reply as resolved.
+                    Approved solutions are kept in the <a href="<?= BASE_URL ?>student/repository.php">IT Knowledge Repository</a>.
                 <?php endif; ?>
             </div>
         <?php else: ?>

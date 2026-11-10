@@ -49,6 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('student/post.php?id=' . $post_id);
     }
 
+    // A resolved discussion is read-only. Checked on the server, so sending the form
+    // directly (without the page) is refused too.
+    if ($is_resolved) {
+        set_flash('Submissions are closed as this issue has been resolved.', 'error');
+        redirect('student/post.php?id=' . $post_id);
+    }
+
     $reply_content = post_text('content');
 
     if (mb_strlen($reply_content) < 2) {
@@ -214,8 +221,13 @@ $profile_url = BASE_URL . 'student/profile.php?id=';
         </div>
     </section>
 
-    <!-- ===== Reply form (students only) ===== -->
-    <?php if (is_staff()): ?>
+    <!-- ===== Reply form (students only, open questions only) ===== -->
+    <?php if ($is_resolved): ?>
+        <div class="closed-note" role="status">
+            <?= icon('check', 18) ?>
+            <p>Submissions are closed as this issue has been resolved.</p>
+        </div>
+    <?php elseif (is_staff()): ?>
         <div class="staff-note">
             <?= icon('user', 18) ?>
             <p>
@@ -241,6 +253,11 @@ $profile_url = BASE_URL . 'student/profile.php?id=';
             <button type="submit" class="btn btn-primary"><?= icon('reply', 16) ?>Post reply</button>
         </div>
     </form>
+    <!-- Shown by live.js if the author resolves the question while this page is open -->
+    <div class="closed-note" data-closed-note role="status" hidden>
+        <?= icon('check', 18) ?>
+        <p>Submissions are closed as this issue has been resolved.</p>
+    </div>
     <?php endif; ?>
 </main>
 
@@ -255,6 +272,35 @@ $profile_url = BASE_URL . 'student/profile.php?id=';
             <div><dt>Replies</dt><dd data-reply-count><?= $reply_count ?></dd></div>
         </dl>
     </section>
+
+    <?php if ($is_resolved): ?>
+        <?php
+        // IT Knowledge Repository: who may submit this resolved discussion for evaluation.
+        // The original poster, the student whose reply was accepted, or any staff member.
+        $repo_entry = repository_entry_for_post($conn, $post_id);
+        $accepted_author = (int) one_value($conn, 'SELECT user_id FROM replies WHERE reply_id = ?', (int) $post['accepted_reply_id']);
+        $can_submit = !$repo_entry && $post['accepted_reply_id'] !== null
+            && ($is_author || $accepted_author === $user_id || is_staff());
+        ?>
+        <?php if ($repo_entry && $repo_entry['status'] === 'Approved' && (int) $repo_entry['is_published'] === 1): ?>
+            <section class="rail-box rail-box-repo">
+                <h2><?= icon('book', 16) ?>In the IT Knowledge Repository</h2>
+                <p>A certified technician reviewed this solution and added it to the permanent repository.</p>
+                <a class="btn btn-secondary btn-sm" href="<?= BASE_URL ?>student/repository_entry.php?id=<?= (int) $repo_entry['entry_id'] ?>">View repository entry</a>
+            </section>
+        <?php elseif ($can_submit): ?>
+            <section class="rail-box rail-box-repo">
+                <h2><?= icon('book', 16) ?>Keep this solution</h2>
+                <p>Resolved posts are listed for <?= RESOLVED_VISIBLE_DAYS ?> days. Submit it to the IT Knowledge Repository so a university-certified technician can evaluate it for permanent publication.</p>
+                <form method="post" action="<?= BASE_URL ?>actions/repository_submit.php"
+                      onsubmit="return confirm('Submit this resolved discussion for technician evaluation?');">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="post_id" value="<?= $post_id ?>">
+                    <button type="submit" class="btn btn-primary btn-sm"><?= icon('book', 16) ?>Submit for evaluation</button>
+                </form>
+            </section>
+        <?php endif; ?>
+    <?php endif; ?>
 
     <?php if ($is_author && !$is_resolved): ?>
         <section class="rail-box rail-box-highlight">

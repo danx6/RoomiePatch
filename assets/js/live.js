@@ -467,6 +467,12 @@
                     pageStatus = data.status;
                     if (data.status === 'Resolved') {
                         showThreadNotice('This question was just marked as resolved.', true);
+                        // The discussion is now read-only: hide the reply box straight away
+                        // (the server refuses new replies anyway)
+                        var replyForm = document.getElementById('reply-form');
+                        var closedNote = document.querySelector('[data-closed-note]');
+                        if (replyForm) { replyForm.hidden = true; }
+                        if (closedNote) { closedNote.hidden = false; }
                     }
                 }
             });

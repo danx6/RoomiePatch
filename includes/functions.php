@@ -414,11 +414,66 @@ function delete_reply($conn, $reply_id)
     recalculate_reputation($conn, [$reply['user_id']]);
 
     if ($reply['is_resolved']) {
-        $stmt = $conn->prepare('UPDATE posts SET status = "Open" WHERE post_id = ?');
+        // The accepted answer is gone, so the question is open again
+        $stmt = $conn->prepare('UPDATE posts SET status = "Open", accepted_reply_id = NULL, resolved_at = NULL WHERE post_id = ?');
         $stmt->bind_param('i', $reply['post_id']);
         $stmt->execute();
     }
 }
+
+// ---------- Resolved posts and the IT Knowledge Repository ----------
+//
+// Two separate things with different lifetimes:
+//   * Resolved tab on Browse Posts: recent solutions only, shown for RESOLVED_VISIBLE_DAYS days
+//     after posts.resolved_at. When that ends the post is NOT deleted; it simply stops
+//     being listed there (it stays reachable by its own link, My Posts and profiles).
+//   * IT Knowledge Repository: permanent. Only entries a certified technician approved and
+//     that are published (status Approved AND is_published = 1) are ever shown to students.
+const RESOLVED_VISIBLE_DAYS = 7;
+const REPO_CATEGORIES = ['Hardware', 'Software', 'Operating System', 'Networking', 'Programming', 'Security', 'General IT'];
+
+// Suggested repository category for a Q&A category (the reviewer can change it)
+function repo_category_for($qa_category)
+{
+    return in_array($qa_category, REPO_CATEGORIES, true) ? $qa_category : 'General IT';
+}
+
+// Is the logged-in user staff AND a university-certified technician?
+// Checked in the database every time, so removing the flag takes effect immediately.
+function is_certified_technician($conn)
+{
+    if (($_SESSION['role'] ?? '') !== 'admin') {
+        return false;
+    }
+    $uid = (int) $_SESSION['user_id'];
+    $stmt = $conn->prepare("SELECT is_certified_technician FROM users WHERE user_id = ? AND role = 'admin'");
+    $stmt->bind_param('i', $uid);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    return $row && (int) $row['is_certified_technician'] === 1;
+}
+
+// Run a query with one integer parameter and return the first column of the first row (or null)
+function one_value($conn, $sql, $int_param)
+{
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('i', $int_param);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_row();
+    return $row ? $row[0] : null;
+}
+
+// The repository row for a Q&A post, or null if it was never submitted
+function repository_entry_for_post($conn, $post_id)
+{
+    $stmt = $conn->prepare('SELECT entry_id, status, is_published FROM repository_entries WHERE post_id = ?');
+    $stmt->bind_param('i', $post_id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc();
+}
+
+// SQL condition for entries students are allowed to see. Used by every student-facing query.
+const REPO_PUBLIC_SQL = "e.status = 'Approved' AND e.is_published = 1";
 
 // ---------- Reply votes and reputation ----------
 //

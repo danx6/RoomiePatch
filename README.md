@@ -61,6 +61,33 @@ A **Recently Helpful** (green) or **Recently Not Helpful** (red) label reflects 
 from the last 14 days: at least 3 recent votes are needed, then 60% or more upvotes counts as
 helpful and 40% or less as not helpful. With too few or mixed votes, no label is shown.
 
+### Resolved posts and the IT Knowledge Repository
+
+When the original poster accepts a reply, the post becomes **Resolved** and read-only: the reply
+box is replaced by "Submissions are closed as this issue has been resolved." and the server
+refuses new replies. The accepted reply is stored in `posts.accepted_reply_id`, and the time it
+was resolved in `posts.resolved_at`.
+
+The **Resolved** tab in Browse Posts only shows posts resolved in the last 7 days. Older posts are
+not deleted; they stay in the database and can still be opened by link.
+
+Useful solutions can be kept permanently in the **IT Knowledge Repository** (last item in the
+sidebar):
+
+1. The original poster, the student whose reply was accepted, or staff click
+   **Submit for evaluation** on a resolved post. Each post can be submitted only once.
+2. A **certified university technician** (staff with `users.is_certified_technician = 1`) reviews
+   the submission under Staff, then Knowledge Repository. They can edit the title, category,
+   summary, problem, solution and keywords, and then approve or reject it. Rejecting needs a
+   reason. The reviewer, the date and any rejection reason are recorded.
+3. Approved entries appear in the repository, where students can search them and filter by
+   category (Hardware, Software, Operating System, Networking, Programming, Security, General IT).
+   They can sort by newest, oldest, A–Z or Z–A. Each entry shows the original question with
+   **only** the accepted reply.
+
+Staff can unpublish an approved entry, and a technician can publish it again. Only approved,
+published entries are visible to students; this is checked on the server, not only in the page.
+
 ### Meetup Liability & Safety Notice
 
 Before sending or accepting a meetup request, students must tick an acknowledgement in a popup
@@ -76,14 +103,21 @@ without this acknowledgement.
 2. Start **Apache** and **MySQL**.
 3. Open phpMyAdmin (or HeidiSQL), and import `database/roomiepatch.sql`.
    This one file creates the `roomiepatch` database, all tables, and the demo data
-   (27 students and 3 staff with a few weeks of simulated activity: 31 posts, 6 of them with
-   screenshots, 71 replies, 126 votes, 25 direct messages, 9 meetups and 5 reports, one still
-   waiting for staff). The demo screenshots in `uploads/posts/demo-*.png` are original images
+   (27 students and 3 staff with a few weeks of simulated activity: 34 posts, 17 of them
+   resolved and 6 with screenshots, 76 replies, 126 votes, 25 direct messages, 9 meetups,
+   5 reports with one still waiting for staff, and 14 repository submissions: 9 approved,
+   3 pending and 2 rejected). The demo screenshots in `uploads/posts/demo-*.png` are original images
    drawn for this project.
 4. Open `http://localhost/roomiepatch` and log in.
 
-**Already have an older RoomiePatch database?** Import `database/migration_reputation.sql` instead
-to add reply voting and reputation without losing your data.
+**Already have an older RoomiePatch database?** Import these migrations instead, in order, to add
+the newer features without losing your data:
+
+1. `database/migration_reputation.sql`: reply voting and reputation.
+2. `database/migration_repository.sql`: accepted reply and resolved time on posts, certified
+   technicians, and the `repository_entries` table. Existing resolved posts get their accepted
+   reply from `replies.is_resolved`. Their resolved time is estimated from the latest reply,
+   because it was not recorded before.
 
 To reset everything back to the demo data, import `roomiepatch.sql` again.
 Demo times are relative to the moment you import, so the content always looks recent.
@@ -122,9 +156,13 @@ Login IDs work in upper or lower case.
 | Student | `MC240932950`  | Brandon_Lee         | `stud123`  |
 | Student | `MC241028361`  | Irfan_Hakim         | `stud123`  |
 | Student | `MC250110925`  | Yasmin_Rahim        | `stud123`  |
-| Staff   | `SD234792`     | Admin_Farah         | `admin123` |
-| Staff   | `SD231058`     | Admin_Rutheshwarar  | `admin123` |
+| Staff   | `SD234792`     | Admin_Farah (certified technician)        | `admin123` |
+| Staff   | `SD231058`     | Admin_Rutheshwarar (certified technician) | `admin123` |
 | Staff   | `SD238417`     | Admin_Nadia         | `admin123` |
+
+Certified technicians can approve or reject repository submissions. Other staff can view them and
+unpublish entries. To make another staff account a technician, set `is_certified_technician = 1`
+for it in the `users` table.
 
 ## Folders
 
@@ -139,7 +177,7 @@ Login IDs work in upper or lower case.
 | `assets/`           | `css/style.css`, `js/main.js`, `js/live.js`, `img/logo.png`, and `fonts/` (Figtree font, SIL Open Font License, works offline) |
 | `uploads/posts/`    | Images attached to posts (up to 3 per post)          |
 | `uploads/messages/` | Images attached to direct messages                   |
-| `database/`         | `roomiepatch.sql`: all tables plus the demo data     |
+| `database/`         | `roomiepatch.sql`: all tables plus the demo data; `migration_*.sql`: upgrades for older databases |
 
 ## Licence
 

@@ -33,6 +33,8 @@ function nav_link($key, $href, $icon_name, $label, $active, $badge = null)
         <div class="nav-group">
             <?= nav_link('reports', 'admin/dashboard.php', 'flag', 'Reports', $active) ?>
             <?= nav_link('meetups', 'admin/meetups.php', 'meetup', 'Meetups', $active) ?>
+            <?php $repo_pending = (int) $conn->query("SELECT COUNT(*) FROM repository_entries WHERE status = 'Pending'")->fetch_row()[0]; ?>
+            <?= nav_link('repository_admin', 'admin/repository.php', 'book', 'Knowledge Repository', $active, $repo_pending) ?>
             <?= nav_link('browse', 'student/browse.php', 'list', 'Browse Posts', $active) ?>
         </div>
     <?php else: ?>
@@ -56,5 +58,10 @@ function nav_link($key, $href, $icon_name, $label, $active, $badge = null)
                 <?= e($cat['category_name']) ?>
             </a>
         <?php endwhile; ?>
+    </div>
+
+    <!-- Separate page, deliberately not a category or part of Browse Posts -->
+    <div class="nav-group nav-group-repo">
+        <?= nav_link('repository', 'student/repository.php', 'book', 'IT Knowledge Repository', $active) ?>
     </div>
 </nav>
