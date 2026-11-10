@@ -430,12 +430,13 @@ function delete_reply($conn, $reply_id)
 //   * IT Knowledge Repository: permanent. Only entries a certified technician approved and
 //     that are published (status Approved AND is_published = 1) are ever shown to students.
 const RESOLVED_VISIBLE_DAYS = 7;
-const REPO_CATEGORIES = ['Hardware', 'Software', 'Operating System', 'Networking', 'Programming', 'Security', 'General IT'];
+const REPO_CATEGORIES = ['Hardware', 'Software', 'Operating System', 'Networking'];
 
-// Suggested repository category for a Q&A category (the reviewer can change it)
+// Suggested repository category for a Q&A category (the reviewer can change it).
+// Posts in "Other" start as Software.
 function repo_category_for($qa_category)
 {
-    return in_array($qa_category, REPO_CATEGORIES, true) ? $qa_category : 'General IT';
+    return in_array($qa_category, REPO_CATEGORIES, true) ? $qa_category : 'Software';
 }
 
 // Is the logged-in user staff AND a university-certified technician?

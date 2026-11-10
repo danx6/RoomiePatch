@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS repository_entries (
     entry_id          INT AUTO_INCREMENT PRIMARY KEY,
     post_id           INT NULL,
     accepted_reply_id INT NULL,
-    category          ENUM('Hardware', 'Software', 'Operating System', 'Networking', 'Programming', 'Security', 'General IT') NOT NULL,
+    category          ENUM('Hardware', 'Software', 'Operating System', 'Networking') NOT NULL,  -- same as post categories; "Other" posts become Software
     title             VARCHAR(150) NOT NULL,
     summary           VARCHAR(300) NOT NULL,
     problem           TEXT NOT NULL,

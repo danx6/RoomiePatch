@@ -81,7 +81,8 @@ sidebar):
    summary, problem, solution and keywords, and then approve or reject it. Rejecting needs a
    reason. The reviewer, the date and any rejection reason are recorded.
 3. Approved entries appear in the repository, where students can search them and filter by
-   category (Hardware, Software, Operating System, Networking, Programming, Security, General IT).
+   category (Hardware, Software, Operating System, Networking; the same as post categories, and
+   posts in Other are filed under Software).
    They can sort by newest, oldest, A–Z or Z–A. Each entry shows the original question with
    **only** the accepted reply.
 
