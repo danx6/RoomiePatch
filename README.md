@@ -38,10 +38,6 @@ can learn from and support each other.
 - **Moderation**: staff review reports and can remove posts or replies that break the rules.
 - **Light and dark theme**, and it works on mobile.
 
-## Built with
-
-Plain **HTML**, **CSS**, **JavaScript**, **PHP** and **MySQL**. No frameworks or UI libraries.
-
 ## Folder structure
 
 ```
