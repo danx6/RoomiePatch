@@ -196,7 +196,20 @@ $has_filters = $q !== '' || $category > 0 || $device !== '' || $tag !== '';
     <?php endif; ?>
 
     <div class="feed">
-        <?php if ($posts->num_rows === 0): ?>
+        <?php if ($posts->num_rows === 0 && $status === 'Open' && $q !== ''): ?>
+            <?php // A search found no open questions: suggest the repository, keeping the same keywords ?>
+            <div class="search-repo-hint">
+                <span class="search-repo-hint-icon"><?= icon('book', 22) ?></span>
+                <div>
+                    <strong>Couldn't find what you're looking for?</strong>
+                    <p>No matching open discussions were found for your search.</p>
+                    <p>The solution might already be available in our IT Knowledge Repository! Try searching for similar keywords to find previously resolved IT problems and their verified solutions.</p>
+                    <a class="btn btn-primary btn-sm" href="<?= BASE_URL ?>student/repository.php?<?= e(http_build_query(['q' => $q])) ?>">
+                        Explore IT Knowledge Repository <?= icon('arrow-right', 16) ?>
+                    </a>
+                </div>
+            </div>
+        <?php elseif ($posts->num_rows === 0): ?>
             <div class="empty-state">
                 <?php if ($has_filters): ?>
                     <strong>No <?= $status === 'Open' ? 'open' : 'resolved' ?> questions match</strong>

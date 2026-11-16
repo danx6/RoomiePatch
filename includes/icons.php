@@ -33,6 +33,7 @@ function icon($name, $size = 20)
         'info'       => '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/>',
         'arrow-up'   => '<path d="M12 19V5M5 12l7-7 7 7"/>',
         'arrow-down' => '<path d="M12 5v14M19 12l-7 7-7-7"/>',
+        'arrow-right' => '<path d="M5 12h14M12 5l7 7-7 7"/>',
         'tag'      => '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="8" cy="8" r="1.5"/>',
     ];
 
